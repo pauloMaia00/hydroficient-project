@@ -40,7 +40,7 @@ class WaterSensorMQTT:
             "flow_rate": round(self.base_flow + random.uniform(-3, 3), 1)
         }
     
-    def Get_leak_reading(self):
+    def get_leak_reading(self):
         """
         Generate a reading simulating a water leak 
 
