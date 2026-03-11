@@ -49,7 +49,7 @@ class WaterSensorMQTT:
         Returns: 
             dict: Sensor reading with anomalous high flow rate
         """
-        self.counter + 1
+        self.counter += 1
         return {
             "device_id": self.device_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
