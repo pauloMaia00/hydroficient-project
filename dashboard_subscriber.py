@@ -48,6 +48,8 @@ def display_reading(data):
     
     location = data.get('location', 'Unknown')
     device_id = data.get('device_id', 'Unknown')
+    time = data.get('timestamp', 'N/A')
+    counter = data.get('counter', 0)
     up = data.get('pressure_upstream', 0)
     down = data.get('pressure_downstream', 0)
     flow = data.get('flow_rate', 0)
@@ -68,6 +70,8 @@ def display_reading(data):
     print(f"\n{'─' * 40}")
     print(f"  Location:  {location}")
     print(f"  Device ID: {device_id}")
+    print(f"  Time: {time}")
+    print(f"  Counter: {counter}")
 
     if alerts:
         print(f"  *** ALERTS ***")
@@ -75,8 +79,10 @@ def display_reading(data):
             print(f"  >>> {alert}")
 
     print(f"{'─' * 40}")
-    print(f"  Pressure: {up:.1f} / {down:.1f} PSI")
+    print(f"  Pressure (upstream): {up:.1f} PSI")
+    print(f"  Pressure (downstream): {down:.1f} PSI")
     print(f"  Flow:     {flow:.1f} gal/min")
+    print(f"  Pressure Differential: {up - down:.1f}")
 
 # Create and configure client
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
