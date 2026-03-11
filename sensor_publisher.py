@@ -52,6 +52,7 @@ class WaterSensorMQTT:
         self.counter += 1
         return {
             "device_id": self.device_id,
+            "location": self.location,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "counter": self.counter,
             "pressure_upstream": round(self.base_pressure_up + random.uniform(-2, 2), 1),
@@ -71,6 +72,7 @@ class WaterSensorMQTT:
         self.counter += 1
         return{
             "device_id": self.device_id,
+            "location": self.location,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "counter": self.counter,
             "pressure_upstream": round(random.uniform(95, 110), 1), # High 
