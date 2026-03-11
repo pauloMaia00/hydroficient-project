@@ -109,5 +109,5 @@ class WaterSensorMQTT:
 
 # Example usage when run directly
 if __name__=="__main__":
-    sensor = WaterSensorMQTT("main-building")
+    sensor = WaterSensorMQTT("GM-HYDROLOGIC-01", "main-building")
     sensor.run_continuous(interval=2)
