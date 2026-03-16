@@ -106,13 +106,13 @@ def save_certificates(ca_cert, server_cert, server_key, output_dir="certs"):
     ca_path = output_path / "ca.pem"
     with open(ca_path, "wb") as f:
         f.write(ca_cert.public_bytes(serialization.Encoding.PEM))
-    print(f"        Saved: {ca_path}")
+    print(f"       Saved: {ca_path}")
 
     # Save server certificate (public)
     server_cert_path = output_path / "server.pem"
     with open(server_cert_path, "wb") as f:
         f.write(server_cert.public_bytes(serialization.Encoding.PEM))
-    print(f"        Saved: {server_cert_path}")
+    print(f"       Saved: {server_cert_path}")
 
     # Save server private key (SECRET!)
     server_key_path = output_path / "server-key.pem"
@@ -122,7 +122,7 @@ def save_certificates(ca_cert, server_cert, server_key, output_dir="certs"):
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.NoEncryption()
         ))
-    print(f"        Saved: {server_key_path}")
+    print(f"       Saved: {server_key_path}")
 
     return ca_path, server_cert_path, server_key_path
 
@@ -138,11 +138,11 @@ def verify_certificates(ca_path, server_path):
     with open(server_path, "rb") as f:
         server = x509.load_pem_x509_certificate(f.read())
     
-    print(f"        CA Subject: {ca.subject.rfc4514_string()}")
-    print(f"        CA Valid Until: {ca.not_valid_after_utc.strftime('%y-%m-%d')}")
-    print(f"        Server Subject: {server.subject.rfc4514_string()}")
-    print(f"        Server Issuer: {server.issuer.rfc4514_string()}")
-    print(f"        Server Valid Until: {server.not_valid_after_utc.strftime('%Y-%m-%d')}")
+    print(f"       CA Subject: {ca.subject.rfc4514_string()}")
+    print(f"       CA Valid Until: {ca.not_valid_after_utc.strftime('%Y-%m-%d')}")
+    print(f"       Server Subject: {server.subject.rfc4514_string()}")
+    print(f"       Server Issuer: {server.issuer.rfc4514_string()}")
+    print(f"       Server Valid Until: {server.not_valid_after_utc.strftime('%Y-%m-%d')}")
 
     # Verify the chain
     if server.issuer == ca.subject:
