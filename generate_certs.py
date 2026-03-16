@@ -81,3 +81,23 @@ def generate_server_certificate(ca_key, ca_cert):
     x509.DNSName("localhost"),
     x509.IPAddress(ipaddress.IPv4Address("127.0.0.1")),
 ])
+    
+def save_certificates(ca_cert, server_cert, server_key, output_dir="certs"):
+    output_path = Path(output_dir)
+    output_path.mkdir(exist_ok=True)
+
+    # Save CA certificate (public)
+    with open(output_path / "ca.pem", "wb") as f:
+        f.write(ca_cert.public_bytes(serialization.Encoding.PEM))
+
+    # Save server certificate (public)
+    with open(output_path / "server.pem", "wb") as f:
+        f.write(server_cert.public_bytes(serialization.Encoding.PEM))
+
+    # Save server private key (SECRET!)
+    with open(output_path / "server-key.pem", "wb") as f:
+        f.write(server_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption()
+        ))
