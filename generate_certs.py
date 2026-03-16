@@ -7,8 +7,13 @@ from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+def print_step(step_num: int, total: int, message: str):
+    """Print a formatted step message"""
+    print(f"\n[{step_num}/{total}] {message}")
+
 def generate_ca_certificate():
     """Generate the Certificate Authority (CA) certificate"""
+    print("     Generating CA private key (2048 bits)....")
 
     # Step 1: Generate a private key for the CA
     ca_key = rsa.generate_private_key(
@@ -22,7 +27,8 @@ def generate_ca_certificate():
         x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, "Water Systems Security"),
         x509.NameAttribute(NameOID.COMMON_NAME, "Grand Marina Root CA"),
     ])
-
+    
+    print("     Creating CA certificate (valid for 10 years)....")
         # Step 3: Build and sign the CA certificate
     ca_cert = (
         x509.CertificateBuilder()
@@ -39,9 +45,12 @@ def generate_ca_certificate():
         .sign(ca_key, hashes.SHA256())
     )
 
+    print("     CA certificate created successfully!")
+
 def generate_server_certificate(ca_key, ca_cert):
     """Generate the server certificate signed by the CA"""
 
+    print("     Generating server private key (2048 bits)....")
     # The server gets its OWN key pair (separate from CA)
     server_key = rsa.generate_private_key(
         public_exponent=65537,
@@ -55,6 +64,9 @@ def generate_server_certificate(ca_key, ca_cert):
         x509.NameAttribute(NameOID.COMMON_NAME, "localhost"),
     ])
 
+    print("     Creating server certificate (valid for 1 year)...")
+    print("     Common Name: localhost")
+    print("     Subject Alternative Names: localhost, 127.0.0.1")
     server_cert = (
         x509.CertificateBuilder()
         .subject_name(server_name)
@@ -80,24 +92,92 @@ def generate_server_certificate(ca_key, ca_cert):
     x509.SubjectAlternativeName([
     x509.DNSName("localhost"),
     x509.IPAddress(ipaddress.IPv4Address("127.0.0.1")),
+    
 ])
+    
+print("     Server certificate created successfully!")
     
 def save_certificates(ca_cert, server_cert, server_key, output_dir="certs"):
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
 
     # Save CA certificate (public)
-    with open(output_path / "ca.pem", "wb") as f:
+    ca_path = output_path / "ca.pem"
+    with open(ca_path, "wb") as f:
         f.write(ca_cert.public_bytes(serialization.Encoding.PEM))
+    print(f"        Saved: {ca_path}")
 
     # Save server certificate (public)
-    with open(output_path / "server.pem", "wb") as f:
+    server_cert_path = output_path / "server.pem"
+    with open(server_cert_path, "wb") as f:
         f.write(server_cert.public_bytes(serialization.Encoding.PEM))
+    print(f"        Saved: {server_cert_path}")
 
     # Save server private key (SECRET!)
-    with open(output_path / "server-key.pem", "wb") as f:
+    server_key_path = output_path / "server-key.pem"
+    with open(server_key_path, "wb") as f:
         f.write(server_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.NoEncryption()
         ))
+    print(f"        Saved: {server_key_path}")
+
+    return ca_path, server_cert_path, server_key_path
+
+def verify_certificates(ca_path, server_path):
+    """Verify the certificates were created correctly"""
+    print("\n       Verifying certificates...")
+
+    #Load and display CA info 
+    with open(ca_path, "rb") as f:
+        ca = x509.load_pem_x509_certificate(f.read())
+
+    #Load and display server info
+    with open(server_path, "rb") as f:
+        server = x509.load_pem_x509_certificate(f.read())
+    
+    print(f"        CA Subject: {ca.subject.rfc4514_string()}")
+    print(f"        CA Valid Until: {ca.not_valid_after_utc.strftime('%y-%m-%d')}")
+    print(f"        Server Subject: {server.subject.rfc4514_string()}")
+    print(f"        Server Issuer: {server.issuer.rfc4514_string()}")
+    print(f"        Server Valid Until: {server.not_valid_after.strftime('%Y-%m-%d')}")
+
+    # Verify the chain
+    if server.issuer == ca.subject:
+        print("     Chain vertifed: Server cert if signed by CA")
+    else:
+        print("     WARNING: Certificate chain verification failed!")
+
+def main():
+    """Main function - generate all certificates"""
+    print("\n" + "=" * 55)
+    print("    Certificate Generation for Grand Marina Hotel")
+    print("=" * 55)
+
+    #Step 1: Generate CA
+    print_step(1, 3, "Generating Certificate Authority (CA)...")
+    ca_key, ca_cert = generate_ca_certificate()
+
+    # Step 2: Generating server certificate
+    print_step(2, 3, "Generating Server Certificate...")
+    server_key, server_cert = generate_server_certificate(ca_key, ca_cert)
+    # Step 3: Save all files
+    print_step(3, 3, "Saving certificate to certs/ folder...")
+    ca_path, server_path, key_path = save_certificates(ca_cert, server_cert, server_key)
+
+    #Verify
+    verify_certificates(ca_path, server_path)
+
+    print("\n" + "=" * 55)
+    print(" Certificate generated successfully!")
+    print("=" * 55)
+    print("\nFiles created:")
+    print("    certs/ca.pem         - CA certificate (share with clients)")
+    print("    certs/server.pem     - Server certificate (for Mosquitto)")
+    print("    certs/server-key.pem - Server private key (keep secret!)")
+    print("\nNext: Update mosquitto_tls.conf with these path and restart Mosquitto")
+    print()
+
+if __name__=="__main__":
+    main()
