@@ -51,7 +51,7 @@ def generate_ca_certificate():
 def generate_server_certificate(ca_key, ca_cert):
     """Generate the server certificate signed by the CA"""
 
-    print("     Generating server private key (2048 bits)....")
+    print("      Generating server private key (2048 bits)....")
     # The server gets its OWN key pair (separate from CA)
     server_key = rsa.generate_private_key(
         public_exponent=65537,
@@ -65,9 +65,9 @@ def generate_server_certificate(ca_key, ca_cert):
         x509.NameAttribute(NameOID.COMMON_NAME, "localhost"),
     ])
 
-    print("     Creating server certificate (valid for 1 year)...")
-    print("     Common Name: localhost")
-    print("     Subject Alternative Names: localhost, 127.0.0.1")
+    print("      Creating server certificate (valid for 1 year)...")
+    print("      Common Name: localhost")
+    print("      Subject Alternative Names: localhost, 127.0.0.1")
     server_cert = (
         x509.CertificateBuilder()
         .subject_name(server_name)
@@ -95,7 +95,7 @@ def generate_server_certificate(ca_key, ca_cert):
     x509.IPAddress(ipaddress.IPv4Address("127.0.0.1")),
     
 ])
-    print("     Server certificate created successfully!")
+    print("      Server certificate created successfully!")
     return server_key, server_cert
     
 def save_certificates(ca_cert, server_cert, server_key, output_dir="certs"):
@@ -142,7 +142,7 @@ def verify_certificates(ca_path, server_path):
     print(f"        CA Valid Until: {ca.not_valid_after_utc.strftime('%y-%m-%d')}")
     print(f"        Server Subject: {server.subject.rfc4514_string()}")
     print(f"        Server Issuer: {server.issuer.rfc4514_string()}")
-    print(f"        Server Valid Until: {server.not_valid_after.strftime('%Y-%m-%d')}")
+    print(f"        Server Valid Until: {server.not_valid_after_utc.strftime('%Y-%m-%d')}")
 
     # Verify the chain
     if server.issuer == ca.subject:
