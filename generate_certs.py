@@ -13,7 +13,7 @@ def print_step(step_num: int, total: int, message: str):
 
 def generate_ca_certificate():
     """Generate the Certificate Authority (CA) certificate"""
-    print("     Generating CA private key (2048 bits)....")
+    print("      Generating CA private key (2048 bits)....")
 
     # Step 1: Generate a private key for the CA
     ca_key = rsa.generate_private_key(
@@ -28,7 +28,7 @@ def generate_ca_certificate():
         x509.NameAttribute(NameOID.COMMON_NAME, "Grand Marina Root CA"),
     ])
     
-    print("     Creating CA certificate (valid for 10 years)....")
+    print("      Creating CA certificate (valid for 10 years)....")
         # Step 3: Build and sign the CA certificate
     ca_cert = (
         x509.CertificateBuilder()
@@ -45,7 +45,8 @@ def generate_ca_certificate():
         .sign(ca_key, hashes.SHA256())
     )
 
-    print("     CA certificate created successfully!")
+    print("      CA certificate created successfully!")
+    return ca_key, ca_cert
 
 def generate_server_certificate(ca_key, ca_cert):
     """Generate the server certificate signed by the CA"""
@@ -94,8 +95,8 @@ def generate_server_certificate(ca_key, ca_cert):
     x509.IPAddress(ipaddress.IPv4Address("127.0.0.1")),
     
 ])
-    
-print("     Server certificate created successfully!")
+    print("     Server certificate created successfully!")
+    return server_key, server_cert
     
 def save_certificates(ca_cert, server_cert, server_key, output_dir="certs"):
     output_path = Path(output_dir)
