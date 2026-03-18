@@ -14,13 +14,17 @@ TLS_CONFIG = {
 }
 # ============================================
 
+TOPIC = "hydroficient/grandmarina/#"
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    print("\n" + "=" * 60)
-    print("  GRAND MARINA WATER MONITORING DASHBOARD")
-    print("  Connected at:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    print("=" * 60)
-    client.subscribe("hydroficient/grandmarina/#")
+    if reason_code == 0:
+        print("Connected successfully over TLS!")
+        client.subscribe(TOPIC)
+        print(f"Subscribed to: {TOPIC}")
+        print("\nWaiting for messages (Ctrl+C to stop)...")
+    else:
+        print(f"Connection failed. Reason code: {reason_code}")
+    
 
 def on_message(client, userdata, msg):
     topic = msg.topic
@@ -103,6 +107,14 @@ def main():
         print(f"CA certificate not found: {ca_path}")
         print("Run generate_certs.py first!")
         return
+    
+    print("=" * 50)
+    print("   GRAND MARINA HOTEL -Secure Subscriber")
+    print("   TLS-Encrypted MQTT Connection")
+    print("=" * 50)
+    print()
+    print(f"Configuring TLS with CA: {TLS_CONFIG['ca_certs']}")
+
     # Create and configure client
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
@@ -116,7 +128,7 @@ def main():
         tls_version=ssl.PROTOCOL_TLS,        # Use modern TLS
     )
 
-    print("conntectin to TLS broker...")
+    print(f"Connecting to {TLS_CONFIG['broker_host']}:{TLS_CONFIG['broker_port']} with TLS...")
     client.connect(
         TLS_CONFIG["broker_host"],
         TLS_CONFIG["broker_port"],       # Port 8883, not 1883!
