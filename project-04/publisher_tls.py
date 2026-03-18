@@ -39,10 +39,14 @@ class WaterSensorMQTT:
             keyfile=None,                        # No client key
             cert_reqs=ssl.CERT_REQUIRED,         # Verify server certificate
             tls_version=ssl.PROTOCOL_TLS,        # Use modern TLS
-)
+        )
+
+        print(f"Connecting to {TLS_CONFIG['broker_host']}:{TLS_CONFIG['broker_port']} with TLS...")
+
         self.client.connect(broker, port, keepalive=60)
         self.client.loop_start()
-
+        
+        print("Connected successfully over TLS!")
         # Topic for this sensor
         self.topic = f"hydroficient/grandmarina/sensors/{self.location}/readings"
 
@@ -118,7 +122,6 @@ class WaterSensorMQTT:
     def run_continuous(self, interval=2):
         """Publish readings continuously at the specified interval."""
         print(f"Starting device: {self.device_id}")
-        print(f"Location: {self.location}")
         print(f"Publishing to: {self.topic}")
         print(f"Interval: {interval} seconds")
         print("-" * 40)
@@ -126,7 +129,7 @@ class WaterSensorMQTT:
         try:
             while True:
                 reading = self.publish_reading()
-                print(f"[{reading['counter']}] Pressure: {reading['pressure_upstream']}/{reading['pressure_downstream']} PSI, Flow: {reading['flow_rate']} gal/min")
+                print(f"[{reading['counter']}] [{reading['location']}] Published: pressure= {reading['pressure_upstream']}/{reading['pressure_downstream']} PSI, flow= {reading['flow_rate']} GPM")
                 time.sleep(interval)
         except KeyboardInterrupt:
             print("\nSensor stopped.")
@@ -145,13 +148,20 @@ if __name__=="__main__":
         {"device_id": "GM-HYDROLOGIC-03", "location": "kitchen"},
     ]
 
+    print("=" * 50)
+    print("   GRAND MARINA HOTEL -Secure Publisher")
+    print("   TLS-Encrypted MQTT Connection")
+    print("=" * 50)
+    print()
+    print(f"Configuring TLS with CA: {TLS_CONFIG['ca_certs']}")
+
     threads = []
     for d in devices:
         t = threading.Thread(target=run_sensor, args=(d["device_id"], d["location"], 2), daemon=True)
         t.start()
         threads.append(t)
 
-    print("All sensors running. Press Ctrl+C to stop.")
+    print("Publishing sensor data (Ctrl+C to stop)...")
 
     try:
         while True:
