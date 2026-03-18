@@ -4,21 +4,43 @@ import random
 import time
 import threading
 import ssl   # ADD THIS FOR TLS
+from pathlib import Path
 from datetime import datetime, timezone
+
+# ============================================
+# TLS CONFIGURATION - ADD THIS FOR TLS
+# ============================================
+TLS_CONFIG = {
+    "ca_certs": "certs/ca.pem",      # Path to CA certificate
+    "broker_host": "localhost",
+    "broker_port": 8883,              # TLS port (not 1883!)
+}
+# ============================================
 
 class WaterSensorMQTT:
     """
     A water sensor that publishes readings to MQTT.
     """
 
-    def __init__(self, device_id, location, broker="localhost", port=1883):
+    def __init__(self, device_id, location, broker=TLS_CONFIG["broker_host"], port=TLS_CONFIG["broker_port"]):
         self.device_id = device_id
         self.location = location
         self.counter = 0
 
+        ca_path = Path(TLS_CONFIG["ca_certs"])
+        if not ca_path.exists():
+            raise FileNotFoundError(f"CA certificate not found: {ca_path}. Run generate_carts.py first!")
+
         # MQTT setup
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        self.client.connect(broker, port)
+        self.client.tls_set(
+            ca_certs=TLS_CONFIG["ca_certs"],    # Trust this CA
+            certfile=None,                       # No client cert (server-only TLS)
+            keyfile=None,                        # No client key
+            cert_reqs=ssl.CERT_REQUIRED,         # Verify server certificate
+            tls_version=ssl.PROTOCOL_TLS,        # Use modern TLS
+)
+        self.client.connect(broker, port, keepalive=60)
         self.client.loop_start()
 
         # Topic for this sensor

@@ -1,7 +1,19 @@
 import paho.mqtt.client as mqtt
 import json
 import ssl   # ADD THIS FOR TLS
+from pathlib import Path
 from datetime import datetime
+
+# ============================================
+# TLS CONFIGURATION - ADD THIS FOR TLS
+# ============================================
+TLS_CONFIG = {
+    "ca_certs": "certs/ca.pem",      # Path to CA certificate
+    "broker_host": "localhost",
+    "broker_port": 8883,              # TLS port (not 1883!)
+}
+# ============================================
+
 
 def on_connect(client, userdata, flags, reason_code, properties):
     print("\n" + "=" * 60)
@@ -85,12 +97,32 @@ def display_reading(data):
     print(f"  Flow:     {flow:.1f} gal/min")
     print(f"  Pressure Differential: {up - down:.1f}")
 
-# Create and configure client
-client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-client.on_connect = on_connect
-client.on_message = on_message
+def main():
+    ca_path = Path(TLS_CONFIG["ca_certs"])
+    if not ca_path.exists():
+        print(f"CA certificate not found: {ca_path}")
+        print("Run generate_certs.py first!")
+        return
+    # Create and configure client
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    client.on_connect = on_connect
+    client.on_message = on_message
 
-# Connect and run
-print("Connecting to broker...")
-client.connect("localhost", 1883)
-client.loop_forever()
+    client.tls_set(
+        ca_certs=TLS_CONFIG["ca_certs"],    # Trust this CA
+        certfile=None,                       # No client cert (server-only TLS)
+        keyfile=None,                        # No client key
+        cert_reqs=ssl.CERT_REQUIRED,         # Verify server certificate
+        tls_version=ssl.PROTOCOL_TLS,        # Use modern TLS
+    )
+
+    print("conntectin to TLS broker...")
+    client.connect(
+        TLS_CONFIG["broker_host"],
+        TLS_CONFIG["broker_port"],       # Port 8883, not 1883!
+        keepalive=60
+    )
+    client.loop_forever()
+
+if __name__ == "__main__":
+    main()
