@@ -89,7 +89,6 @@ def display_reading(data):
     print(f"  Device ID: {device_id}")
     print(f"  Time: {time}")
     print(f"  Counter: {counter}")
-
     if alerts:
         print(f"  *** ALERTS ***")
         for alert in alerts:
