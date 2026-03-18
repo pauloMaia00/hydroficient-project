@@ -41,11 +41,9 @@ class WaterSensorMQTT:
             tls_version=ssl.PROTOCOL_TLS,        # Use modern TLS
         )
 
-
         self.client.connect(broker, port, keepalive=60)
         self.client.loop_start()
         
-        print("Connected successfully over TLS!")
         # Topic for this sensor
         self.topic = f"hydroficient/grandmarina/sensors/{self.location}/readings"
 
@@ -151,7 +149,7 @@ if __name__=="__main__":
     print()
     print(f"Configuring TLS with CA: {TLS_CONFIG['ca_certs']}")
     print(f"Connecting to {TLS_CONFIG['broker_host']}:{TLS_CONFIG['broker_port']} with TLS...")
-    print("\nConnected successfully over TLS!")
+    print("Connected successfully over TLS!")
 
     threads = []
     for d in devices:
