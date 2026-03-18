@@ -1,5 +1,6 @@
 import paho.mqtt.client as mqtt
 import json
+import ssl   # ADD THIS FOR TLS
 from datetime import datetime
 
 def on_connect(client, userdata, flags, reason_code, properties):

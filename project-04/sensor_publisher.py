@@ -2,6 +2,8 @@ import paho.mqtt.client as mqtt
 import json
 import random
 import time
+import threading
+import ssl   # ADD THIS FOR TLS
 from datetime import datetime, timezone
 
 class WaterSensorMQTT:
@@ -109,7 +111,28 @@ class WaterSensorMQTT:
             self.client.loop_stop()
             self.client.disconnect()
 
+def run_sensor(device_id, location, interval):
+    sensor = WaterSensorMQTT(device_id=device_id, location=location)
+    sensor.run_continuous(interval)
+
 # Example usage when run directly
 if __name__=="__main__":
-    sensor = WaterSensorMQTT("GM-HYDROLOGIC-01", "main-building")
-    sensor.run_continuous(interval=2)
+    devices = [
+        {"device_id": "GM-HYDROLOGIC-01", "location": "main-building"},
+        {"device_id": "GM-HYDROLOGIC-02", "location": "pool-wing"},
+        {"device_id": "GM-HYDROLOGIC-03", "location": "kitchen"},
+    ]
+
+    threads = []
+    for d in devices:
+        t = threading.Thread(target=run_sensor, args=(d["device_id"], d["location"], 2), daemon=True)
+        t.start()
+        threads.append(t)
+
+    print("All sensors running. Press Ctrl+C to stop.")
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nStopping all sensors.")
