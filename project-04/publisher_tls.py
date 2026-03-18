@@ -41,7 +41,6 @@ class WaterSensorMQTT:
             tls_version=ssl.PROTOCOL_TLS,        # Use modern TLS
         )
 
-        print(f"Connecting to {TLS_CONFIG['broker_host']}:{TLS_CONFIG['broker_port']} with TLS...")
 
         self.client.connect(broker, port, keepalive=60)
         self.client.loop_start()
@@ -121,15 +120,12 @@ class WaterSensorMQTT:
 
     def run_continuous(self, interval=2):
         """Publish readings continuously at the specified interval."""
-        print(f"Starting device: {self.device_id}")
-        print(f"Publishing to: {self.topic}")
-        print(f"Interval: {interval} seconds")
-        print("-" * 40)
 
         try:
             while True:
                 reading = self.publish_reading()
-                print(f"[{reading['counter']}] [{reading['location']}] Published: pressure= {reading['pressure_upstream']}/{reading['pressure_downstream']} PSI, flow= {reading['flow_rate']} GPM")
+
+                print(f"[{reading['counter']}] [{reading['location']}] Published: pressure={reading['pressure_upstream']}/{reading['pressure_downstream']} PSI, flow={reading['flow_rate']} GPM")
                 time.sleep(interval)
         except KeyboardInterrupt:
             print("\nSensor stopped.")
@@ -154,6 +150,8 @@ if __name__=="__main__":
     print("=" * 50)
     print()
     print(f"Configuring TLS with CA: {TLS_CONFIG['ca_certs']}")
+    print(f"Connecting to {TLS_CONFIG['broker_host']}:{TLS_CONFIG['broker_port']} with TLS...")
+    print("\nConnected successfully over TLS!")
 
     threads = []
     for d in devices:
@@ -161,7 +159,7 @@ if __name__=="__main__":
         t.start()
         threads.append(t)
 
-    print("Publishing sensor data (Ctrl+C to stop)...")
+    print("\nPublishing sensor data (Ctrl+C to stop)...\n")
 
     try:
         while True:
