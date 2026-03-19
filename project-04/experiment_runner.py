@@ -18,7 +18,10 @@ class ExperimentRunner:
         self.host = args.host
         self.tls_enabled = args.tls.lower() == "on"
         self.port = 8883 if self.tls_enabled else 1883
-        self.ca_path = args.ca_path
+        if args.mode == "test-wrong-ca":
+            self.ca_path = "carts\wrong-ca.pem"
+        else:
+            self.ca_path = args.ca_path
         self.topic_base = args.topic
         self.client_id = f"experiment-runner-{uuid.uuid4().hex[:8]}"
         self.client = mqtt.Client(client_id=self.client_id, protocol=mqtt.MQTTv311)
@@ -44,8 +47,11 @@ class ExperimentRunner:
 
     def configure_tls(self):
         if self.args.no_ca:
-            print("TLS requested, but --no-ca was provided.")
-            print("Skipping CA file setup to test failure behavior.")
+            self.client.tls_set(
+                cert_reqs=ssl.CERT_NONE,
+                tls_version=ssl.PROTOCOL_TLS,
+            )
+            self.client.tls_insecure_set(True)
             return
 
         if not os.path.exists(self.ca_path):
@@ -55,7 +61,7 @@ class ExperimentRunner:
             ca_certs=self.ca_path,
             cert_reqs=ssl.CERT_REQUIRED,
             tls_version=ssl.PROTOCOL_TLS,
-        )
+    )
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
@@ -150,12 +156,13 @@ class ExperimentRunner:
         self.disconnect()
 
     def run_connect(self):
+        ca_label = "NONE" if self.args.no_ca else self.ca_path
+
         self.print_header(
-            "Broker Connection Test",
+            "Connection Test",
             [
                 f"TLS: {'ON' if self.tls_enabled else 'OFF'}",
-                f"Host: {self.host}",
-                f"Port: {self.port}",
+                f"CA Certificate: {ca_label}",
             ],
         )
 
@@ -164,6 +171,25 @@ class ExperimentRunner:
             print("  Connection successful.")
         except Exception as e:
             print(f"  Connection failed: {e}")
+        finally:
+            self.disconnect()
+
+    def run_test_wrong_ca(self):
+        ca_label = self.ca_path
+
+        self.print_header(
+            "Connection Test",
+            [
+                "TLS: ON",
+                f"CA Certificate: {ca_label}",
+            ],
+        )
+
+        try:
+            self.connect()
+            print("SUCCESS: Connected to broker!")
+        except Exception as e:
+            print(f"FAILED: {e}")
         finally:
             self.disconnect()
 
@@ -363,6 +389,8 @@ class ExperimentRunner:
             self.run_generate_expired_cert()
         elif self.args.mode == "generate-wrong-ca":
             self.run_generate_wrong_ca()
+        elif self.args.mode == "test-wrong-ca":
+            self.run_test_wrong_ca()
         else:
             raise ValueError(f"Unknown mode: {self.args.mode}")
 
@@ -379,6 +407,7 @@ def build_parser():
             "stress",
             "generate-expired-cert",
             "generate-wrong-ca",
+            "test-wrong-ca",
         ],
         help="Experiment mode to run",
     )
