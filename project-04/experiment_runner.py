@@ -418,7 +418,7 @@ def build_parser():
     )
     parser.add_argument(
         "--tls",
-        required=True,
+        default="off",
         choices=["on", "off"],
         help="Enable or disable TLS",
     )
