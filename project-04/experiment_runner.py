@@ -19,12 +19,17 @@ class ExperimentRunner:
         self.tls_enabled = args.tls.lower() == "on"
         self.port = 8883 if self.tls_enabled else 1883
         if args.mode == "test-wrong-ca":
-            self.ca_path = "carts\wrong-ca.pem"
+            self.ca_path = "carts/wrong-ca.pem"
         else:
             self.ca_path = args.ca_path
+
         self.topic_base = args.topic
         self.client_id = f"experiment-runner-{uuid.uuid4().hex[:8]}"
-        self.client = mqtt.Client(client_id=self.client_id, protocol=mqtt.MQTTv311)
+        self.client = mqtt.Client(
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION1,
+            client_id=self.client_id,
+            protocol=mqtt.MQTTv311,
+        )
 
         self.connected_event = threading.Event()
         self.subscribed_event = threading.Event()
