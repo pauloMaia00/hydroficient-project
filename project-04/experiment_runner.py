@@ -392,7 +392,7 @@ def build_parser():
     )
     parser.add_argument(
         "--topic",
-        default="experiment/test",
+        default="grandmarina/#",
         help="Base MQTT topic",
     )
     parser.add_argument(
