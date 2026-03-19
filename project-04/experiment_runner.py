@@ -26,7 +26,7 @@ class ExperimentRunner:
         self.topic_base = args.topic
         self.client_id = f"experiment-runner-{uuid.uuid4().hex[:8]}"
         self.client = mqtt.Client(
-            callback_api_version=mqtt.CallbackAPIVersion.VERSION1,
+            callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
             client_id=self.client_id,
             protocol=mqtt.MQTTv311,
         )
