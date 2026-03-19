@@ -128,16 +128,19 @@ class ExperimentRunner:
         )
 
         self.connect()
-        topic = f"{self.topic_base}/publish"
+        topic = f"{self.topic_base}/sensors/test-location/readings"
 
         for i in range(1, count + 1):
             payload = {
-                "id": i,
-                "message": f"test message {i}",
-                "timestamp": time.time(),
+                "device_id": "test-sensor-001",
+                "pressure_psi": 81.5 + i,
+                "flow_gpm": 40.0 + i,
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "reading_num": i
             }
             self.client.publish(topic, json.dumps(payload))
             print(f"  Published {i}/{count}")
+            time.sleep(1)
 
         print()
         print("=" * 50)
@@ -392,7 +395,7 @@ def build_parser():
     )
     parser.add_argument(
         "--topic",
-        default="grandmarina/#",
+        default="hydroficient/grandmarina/",
         help="Base MQTT topic",
     )
     parser.add_argument(
