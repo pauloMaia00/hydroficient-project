@@ -19,7 +19,7 @@ class ExperimentRunner:
         self.tls_enabled = args.tls.lower() == "on"
         self.port = 8883 if self.tls_enabled else 1883
         if args.mode == "test-wrong-ca":
-            self.ca_path = "carts/wrong-ca.pem"
+            self.ca_path = "certs/wrong-ca.pem"
         else:
             self.ca_path = args.ca_path
 
