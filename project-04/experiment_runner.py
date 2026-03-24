@@ -259,6 +259,15 @@ class ExperimentRunner:
         rate = self.args.rate
         duration = self.args.duration
 
+        self.print_header(
+        "Stress Test",
+        [
+            f"TLS: {'ON' if self.tls_enabled else 'OFF'}",
+            f"Target rate: {rate} msg/sec",
+            f"Duration: {duration} sec",
+        ],
+)
+
         self.connect()
 
         interval = 1.0 / rate
@@ -292,7 +301,8 @@ class ExperimentRunner:
         total_attempts = messages_sent + errors
         success_rate = (messages_sent / total_attempts) * 100 if total_attempts > 0 else 0
 
-        if actual_rate >= rate and errors == 0:
+        display_rate = round(actual_rate, 1)
+        if display_rate >= rate and errors == 0:
             status = "SUCCESS (achieved target rate)"
         else:
             status = "DEGRADED (couldn't keep up with target rate)"
@@ -302,7 +312,7 @@ class ExperimentRunner:
         print(f"  Stress Results (TLS {'ON' if self.tls_enabled else 'OFF'})")
         print("=" * 50)
         print(f"  Target rate: {rate} msg/sec")
-        print(f"  Actual rate: {actual_rate:.1f} msg/sec")
+        print(f"  Actual rate: {actual_rate} msg/sec")
         print(f"  Messages sent: {messages_sent}")
         print(f"  Errors: {errors}")
         print(f"  Success rate: {success_rate:.1f}%")
