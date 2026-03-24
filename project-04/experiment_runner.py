@@ -16,8 +16,13 @@ class ExperimentRunner:
     def __init__(self, args):
         self.args = args
         self.host = args.host
-        self.tls_enabled = args.tls.lower() == "on"
+        if args.mode == "test-wrong-ca":
+            self.tls_enabled = True
+        else:
+            self.tls_enabled = args.tls.lower() == "on"
+
         self.port = 8883 if self.tls_enabled else 1883
+
         if args.mode == "test-wrong-ca":
             self.ca_path = "certs/wrong-ca.pem"
         else:
