@@ -274,13 +274,23 @@ class ExperimentRunner:
         interval = 1.0 / rate
         start_time = time.time()
 
+        successful_publishes = 0
+        error_count = 0
+
         for i in range(1, total_messages + 1):
             payload = {
                 "id": i,
                 "timestamp": time.time(),
                 "message": f"stress test {i}",
             }
-            self.client.publish(self.stress_topic, json.dumps(payload), qos=0)
+            result = self.client.publish(self.stress_topic, json.dumps(payload), qos=0)
+
+            if result.rc == mqtt.MQTT_ERR_SUCCESS:
+                successful_publishes += 1
+            else:
+                error_count += 1
+                print(f"  Error publishing message {i}: rc={result.rc}")
+
 
             next_send = start_time + (i * interval)
             sleep_time = next_send - time.time()
@@ -292,14 +302,25 @@ class ExperimentRunner:
 
         elapsed = time.time() - start_time
 
+        actual_rate = successful_publishes / elapsed if elapsed > 0 else 0
+        success_rate = (successful_publishes / total_messages) * 100 if total_messages > 0 else 0
+
+        if actual_rate >= rate:
+            status = "SUCCESS"
+        else:
+            status = "DEGRADED"
+
         print()
         print("=" * 50)
         print(f"  Stress Results (TLS {'ON' if self.tls_enabled else 'OFF'})")
         print("=" * 50)
+        print(f"  Target rate: {rate:.2f} msg/sec")
+        print(f"  Actual rate: {actual_rate:.2f} msg/sec")
         print(f"  Messages sent: {total_messages}")
-        print(f"  Target rate: {rate} msg/sec")
-        print(f"  Duration: {duration} sec")
+        print(f"Errors: {error_count}")
+        print(f"  Success rate: {success_rate:.2f}%")
         print(f"  Actual elapsed time: {elapsed:.2f} sec")
+        print(f"  Status: {status}")
         print("=" * 50)
 
         self.disconnect()
