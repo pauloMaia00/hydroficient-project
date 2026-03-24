@@ -258,68 +258,54 @@ class ExperimentRunner:
     def run_stress(self):
         rate = self.args.rate
         duration = self.args.duration
-        total_messages = rate * duration
-
-        self.print_header(
-            "Stress Test",
-            [
-                f"TLS: {'ON' if self.tls_enabled else 'OFF'}",
-                f"Rate: {rate} msg/sec",
-                f"Duration: {duration} sec",
-            ],
-        )
 
         self.connect()
 
         interval = 1.0 / rate
         start_time = time.time()
+        end_time = start_time + duration
 
-        successful_publishes = 0
-        error_count = 0
+        messages_sent = 0
+        errors = 0
 
-        for i in range(1, total_messages + 1):
+        while time.time() < end_time:
             payload = {
-                "id": i,
+                "id": messages_sent + 1,
                 "timestamp": time.time(),
-                "message": f"stress test {i}",
+                "message": f"stress test {messages_sent + 1}",
             }
+
             result = self.client.publish(self.stress_topic, json.dumps(payload), qos=0)
 
             if result.rc == mqtt.MQTT_ERR_SUCCESS:
-                successful_publishes += 1
+                messages_sent += 1
             else:
-                error_count += 1
-                print(f"  Error publishing message {i}: rc={result.rc}")
+                errors += 1
 
-
-            next_send = start_time + (i * interval)
-            sleep_time = next_send - time.time()
+            next_send_time = start_time + ((messages_sent + errors) * interval)
+            sleep_time = next_send_time - time.time()
             if sleep_time > 0:
                 time.sleep(sleep_time)
 
-            if i % rate == 0 or i == total_messages:
-                print(f"  Sent {i}/{total_messages} messages...")
-
         elapsed = time.time() - start_time
+        actual_rate = messages_sent / elapsed if elapsed > 0 else 0
+        total_attempts = messages_sent + errors
+        success_rate = (messages_sent / total_attempts) * 100 if total_attempts > 0 else 0
 
-        actual_rate = successful_publishes / elapsed if elapsed > 0 else 0
-        success_rate = (successful_publishes / total_messages) * 100 if total_messages > 0 else 0
-
-        if actual_rate >= rate:
-            status = "SUCCESS"
+        if actual_rate >= rate and errors == 0:
+            status = "SUCCESS (achieved target rate)"
         else:
-            status = "DEGRADED"
+            status = "DEGRADED (couldn't keep up with target rate)"
 
         print()
         print("=" * 50)
         print(f"  Stress Results (TLS {'ON' if self.tls_enabled else 'OFF'})")
         print("=" * 50)
-        print(f"  Target rate: {rate:.2f} msg/sec")
-        print(f"  Actual rate: {actual_rate:.2f} msg/sec")
-        print(f"  Messages sent: {total_messages}")
-        print(f"Errors: {error_count}")
-        print(f"  Success rate: {success_rate:.2f}%")
-        print(f"  Actual elapsed time: {elapsed:.2f} sec")
+        print(f"  Target rate: {rate} msg/sec")
+        print(f"  Actual rate: {actual_rate:.1f} msg/sec")
+        print(f"  Messages sent: {messages_sent}")
+        print(f"  Errors: {errors}")
+        print(f"  Success rate: {success_rate:.1f}%")
         print(f"  Status: {status}")
         print("=" * 50)
 
