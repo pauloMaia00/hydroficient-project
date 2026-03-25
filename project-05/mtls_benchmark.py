@@ -13,7 +13,7 @@ Usage:
 
 Requirements:
   - Mosquitto broker running with one-way TLS on port 8883
-  - Mosquitto broker running with mTLS on port 8884
+  - Mosquitto broker running with mTLS on port 8885
   - Certificates in certs/ directory
 """
 
@@ -39,7 +39,7 @@ except AttributeError:
 # =============================================================================
 BROKER_HOST = "localhost"
 TLS_PORT = 8883       # One-way TLS broker
-MTLS_PORT = 8884      # Mutual TLS broker
+MTLS_PORT = 8885      # Mutual TLS broker
 
 # Certificate paths
 CA_CERT = "certs/ca.pem"
@@ -180,7 +180,7 @@ def benchmark_connection(trials=20):
         if not tls_times:
             print("  One-Way TLS broker (port 8883): no successful connections")
         if not mtls_times:
-            print("  mTLS broker (port 8884): no successful connections")
+            print("  mTLS broker (port 8885): no successful connections")
 
 
 # =============================================================================
