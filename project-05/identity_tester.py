@@ -23,6 +23,16 @@ import argparse
 import sys
 import time
 import os
+from pathlib import Path
+from datetime import datetime, timedelta, timezone
+
+try:
+    from cryptography import x509
+    from cryptography.x509.oid import NameOID, ExtendedKeyUsageOID
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+except ImportError:
+    x509 = None
 
 # Handle paho-mqtt 2.0+ API change
 try:
@@ -40,17 +50,186 @@ BROKER_PORT = 8883
 
 # Certificate files
 CA_CERT = "certs/ca.pem"
+CA_KEY = "certs/ca-key.pem"   # needed to sign the expired client cert
 CLIENT_CERT = "certs/device-001.pem"
 CLIENT_KEY = "certs/device-001-key.pem"
 
 # For wrong CA test - you'll need to create these
 WRONG_CA_CERT = "certs/wrong-ca.pem"
+WRONG_CA_KEY = "certs/wrong-ca-key.pem"
 WRONG_CLIENT_CERT = "certs/wrong-device.pem"
 WRONG_CLIENT_KEY = "certs/wrong-device-key.pem"
 
 # For expired cert test - you'll need to create this
 EXPIRED_CERT = "certs/expired-device.pem"
 EXPIRED_KEY = "certs/expired-device-key.pem"
+
+# =============================================================================
+# Certificate Generation Helpers
+# =============================================================================
+
+def require_cryptography():
+    if x509 is None:
+        raise RuntimeError(
+            "The 'cryptography' package is required to generate test certificates.\n"
+            "Install it with: pip install cryptography"
+        )
+
+def ensure_certs_dir():
+    Path("certs").mkdir(parents=True, exist_ok=True)
+
+def write_private_key(path, key):
+    with open(path, "wb") as f:
+        f.write(
+            key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+        )
+
+def write_certificate(path, cert):
+    with open(path, "wb") as f:
+        f.write(cert.public_bytes(serialization.Encoding.PEM))
+
+def generate_private_key():
+    return rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+def build_name(common_name):
+    return x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
+        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Virginia"),
+        x509.NameAttribute(NameOID.LOCALITY_NAME, "Charlottesville"),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Grand Marina Test Lab"),
+        x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+    ])
+
+def generate_self_signed_ca(common_name, valid_days=365):
+    key = generate_private_key()
+    subject = issuer = build_name(common_name)
+    now = datetime.now(timezone.utc)
+
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(days=1))
+        .not_valid_after(now + timedelta(days=valid_days))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .add_extension(x509.SubjectKeyIdentifier.from_public_key(key.public_key()), critical=False)
+        .sign(key, hashes.SHA256())
+    )
+
+    return key, cert
+
+def generate_client_cert_signed_by_ca(common_name, ca_cert, ca_key, valid_from, valid_to):
+    key = generate_private_key()
+    subject = build_name(common_name)
+
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(ca_cert.subject)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(valid_from)
+        .not_valid_after(valid_to)
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+        .add_extension(
+            x509.ExtendedKeyUsage([ExtendedKeyUsageOID.CLIENT_AUTH]),
+            critical=False
+        )
+        .add_extension(x509.SubjectKeyIdentifier.from_public_key(key.public_key()), critical=False)
+        .add_extension(
+            x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()),
+            critical=False
+        )
+        .sign(ca_key, hashes.SHA256())
+    )
+
+    return key, cert
+
+def load_pem_private_key_from_file(path):
+    with open(path, "rb") as f:
+        return serialization.load_pem_private_key(f.read(), password=None)
+
+def load_pem_certificate_from_file(path):
+    with open(path, "rb") as f:
+        return x509.load_pem_x509_certificate(f.read())
+
+def ensure_wrong_ca_materials():
+    """
+    Creates:
+      - wrong-ca.pem / wrong-ca-key.pem
+      - wrong-device.pem / wrong-device-key.pem
+    These are used to simulate a client cert signed by an untrusted CA.
+    """
+    require_cryptography()
+    ensure_certs_dir()
+
+    if os.path.exists(WRONG_CLIENT_CERT) and os.path.exists(WRONG_CLIENT_KEY):
+        return
+
+    wrong_ca_key, wrong_ca_cert = generate_self_signed_ca("Wrong Test CA", valid_days=365)
+
+    now = datetime.now(timezone.utc)
+    wrong_client_key, wrong_client_cert = generate_client_cert_signed_by_ca(
+        common_name="wrong-device",
+        ca_cert=wrong_ca_cert,
+        ca_key=wrong_ca_key,
+        valid_from=now - timedelta(days=1),
+        valid_to=now + timedelta(days=30),
+    )
+
+    write_private_key(WRONG_CA_KEY, wrong_ca_key)
+    write_certificate(WRONG_CA_CERT, wrong_ca_cert)
+    write_private_key(WRONG_CLIENT_KEY, wrong_client_key)
+    write_certificate(WRONG_CLIENT_CERT, wrong_client_cert)
+
+def ensure_expired_cert_materials():
+    """
+    Creates:
+      - expired-device.pem / expired-device-key.pem
+    IMPORTANT:
+      This expired client cert is signed by the REAL CA so the broker
+      rejects it specifically because it is expired, not because it is untrusted.
+    """
+    require_cryptography()
+    ensure_certs_dir()
+
+    if os.path.exists(EXPIRED_CERT) and os.path.exists(EXPIRED_KEY):
+        return
+
+    if not os.path.exists(CA_CERT):
+        raise FileNotFoundError(f"Real CA certificate not found: {CA_CERT}")
+
+    if not os.path.exists(CA_KEY):
+        raise FileNotFoundError(
+            f"Real CA private key not found: {CA_KEY}\n"
+            "The expired certificate must be signed by your real CA."
+        )
+
+    real_ca_cert = load_pem_certificate_from_file(CA_CERT)
+    real_ca_key = load_pem_private_key_from_file(CA_KEY)
+
+    now = datetime.now(timezone.utc)
+
+    expired_key, expired_cert = generate_client_cert_signed_by_ca(
+        common_name="expired-device",
+        ca_cert=real_ca_cert,
+        ca_key=real_ca_key,
+        valid_from=now - timedelta(days=30),
+        valid_to=now - timedelta(days=1),  # already expired
+    )
+
+    write_private_key(EXPIRED_KEY, expired_key)
+    write_certificate(EXPIRED_CERT, expired_cert)
+
+def reset_connection_result():
+    global connection_result
+    connection_result = {"connected": False, "rc": -1}
 
 
 # =============================================================================
@@ -198,18 +377,14 @@ def test_wrong_ca():
     print("-" * 60)
     print("Testing connection with certificate signed by DIFFERENT CA...")
 
+    reset_connection_result()
+
     result = TestResult("Wrong CA Certificate")
     result.expected_outcome = "Connection rejected"
 
-    # Check if wrong CA files exist
-    if not os.path.exists(WRONG_CLIENT_CERT):
-        print(f"\nNOTE: {WRONG_CLIENT_CERT} not found.")
-        print("To run this test, create a separate CA and sign a certificate with it.")
-        print("This simulates an attacker who has their own CA but not yours.")
-        result.record_failure("Test certificates not created - skipped")
-        return result.display()
-
     try:
+        ensure_wrong_ca_materials()
+
         client = mqtt.Client(client_id="test-wrong-ca", **MQTT_CLIENT_ARGS)
         client.on_connect = on_connect
 
@@ -248,18 +423,15 @@ def test_expired():
     print("-" * 60)
     print("Testing connection with EXPIRED client certificate...")
 
+    reset_connection_result()
+
     result = TestResult("Expired Certificate")
     result.expected_outcome = "Connection rejected"
 
-    # Check if expired cert files exist
-    if not os.path.exists(EXPIRED_CERT):
-        print(f"\nNOTE: {EXPIRED_CERT} not found.")
-        print("To run this test, create a certificate with past expiration date.")
-        print("Modify generate_client_certs.py: not_valid_after = datetime.now(timezone.utc) - timedelta(days=1)")
-        result.record_failure("Expired certificate not created - skipped")
-        return result.display()
-
+   
     try:
+        ensure_expired_cert_materials()
+        
         client = mqtt.Client(client_id="test-expired", **MQTT_CLIENT_ARGS)
         client.on_connect = on_connect
 
