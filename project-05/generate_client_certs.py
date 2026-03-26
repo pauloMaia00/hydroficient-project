@@ -130,7 +130,7 @@ def generate_server_certificate(ca_cert, ca_key):
         .public_key(server_key.public_key())
         .serial_number(x509.random_serial_number())
         .not_valid_before(datetime.now(timezone.utc))
-        .not_valid_after(datetime.now(timezone.utc) - timedelta(days=1))
+        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=365))
         .add_extension(
             x509.BasicConstraints(ca=False, path_length=None),
             critical=True,
@@ -229,7 +229,7 @@ def generate_client_certificate(device, ca_cert, ca_key):
         .public_key(device_key.public_key())
         .serial_number(x509.random_serial_number())
         .not_valid_before(datetime.now(timezone.utc))
-        .not_valid_after(datetime.now(timezone.utc) - timedelta(days=1))
+        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=365))
         .add_extension(
             x509.BasicConstraints(ca=False, path_length=None),
             critical=True,
@@ -256,8 +256,8 @@ def generate_client_certificate(device, ca_cert, ca_key):
     )
 
     # Step 3: Save the certificate and key
-    cert_file = os.path.join(CERTS_DIR, f"expired-device-{device_id}.pem")
-    key_file = os.path.join(CERTS_DIR, f"expired-device-{device_id}-key.pem")
+    cert_file = os.path.join(CERTS_DIR, f"device-{device_id}.pem")
+    key_file = os.path.join(CERTS_DIR, f"device-{device_id}-key.pem")
 
     # Save certificate
     with open(cert_file, "wb") as f:
@@ -274,7 +274,6 @@ def generate_client_certificate(device, ca_cert, ca_key):
     print(f"  Private key saved: {key_file}")
 
     return cert_file, key_file
-
 
 
 def main():
