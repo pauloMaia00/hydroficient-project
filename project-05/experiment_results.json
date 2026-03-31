@@ -1,0 +1,98 @@
+[
+  {
+    "defense": "none",
+    "attack": "immediate",
+    "total": 5,
+    "accepted": 5,
+    "rejected": 0,
+    "rejection_rate": 0.0
+  },
+  {
+    "defense": "none",
+    "attack": "delayed",
+    "total": 5,
+    "accepted": 5,
+    "rejected": 0,
+    "rejection_rate": 0.0
+  },
+  {
+    "defense": "none",
+    "attack": "modified",
+    "total": 5,
+    "accepted": 5,
+    "rejected": 0,
+    "rejection_rate": 0.0
+  },
+  {
+    "defense": "timestamp",
+    "attack": "immediate",
+    "total": 5,
+    "accepted": 5,
+    "rejected": 0,
+    "rejection_rate": 0.0
+  },
+  {
+    "defense": "timestamp",
+    "attack": "delayed",
+    "total": 5,
+    "accepted": 0,
+    "rejected": 5,
+    "rejection_rate": 100.0
+  },
+  {
+    "defense": "timestamp",
+    "attack": "modified",
+    "total": 5,
+    "accepted": 5,
+    "rejected": 0,
+    "rejection_rate": 0.0
+  },
+  {
+    "defense": "counter",
+    "attack": "immediate",
+    "total": 5,
+    "accepted": 0,
+    "rejected": 5,
+    "rejection_rate": 100.0
+  },
+  {
+    "defense": "counter",
+    "attack": "delayed",
+    "total": 5,
+    "accepted": 0,
+    "rejected": 5,
+    "rejection_rate": 100.0
+  },
+  {
+    "defense": "counter",
+    "attack": "modified",
+    "total": 5,
+    "accepted": 5,
+    "rejected": 0,
+    "rejection_rate": 0.0
+  },
+  {
+    "defense": "all",
+    "attack": "immediate",
+    "total": 5,
+    "accepted": 0,
+    "rejected": 5,
+    "rejection_rate": 100.0
+  },
+  {
+    "defense": "all",
+    "attack": "delayed",
+    "total": 5,
+    "accepted": 0,
+    "rejected": 5,
+    "rejection_rate": 100.0
+  },
+  {
+    "defense": "all",
+    "attack": "modified",
+    "total": 5,
+    "accepted": 0,
+    "rejected": 5,
+    "rejection_rate": 100.0
+  }
+]
